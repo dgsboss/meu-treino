@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plano de Treino 60 Dias</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .checkbox-custom:checked + div { background-color: #10b981; border-color: #10b981; }
+    .checkbox-custom:checked + div svg { display: block; }
+    .exercise-done { opacity: 0.6; text-decoration: line-through; }
+    .day-tab.active { background-color: #2563eb; color: white; }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    canvas.chart { width: 100%; height: 280px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+  <div class="max-w-3xl mx-auto px-4 py-6">
+    
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-6 text-white shadow-lg mb-6">
+      <h1 class="text-2xl font-bold mb-1">🏋️ Plano de Treino 60 Dias</h1>
+      <p class="text-sm text-blue-100">A, B, C, D, E de segunda a sexta · 60 sessões</p>
+      
+      <!-- Progresso do programa -->
+      <div class="mt-4 bg-white/20 rounded-lg p-3">
+        <div class="flex justify-between text-sm mb-1">
+          <span>Progresso do programa</span>
+          <span id="program-progress-text">Dia 0 de 60</span>
+        </div>
+        <div class="w-full bg-white/30 rounded-full h-2.5">
+          <div id="program-progress-bar" class="bg-emerald-400 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Seletor de dia -->
+    <nav class="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
+      <button onclick="selectDay('seg')" id="tab-seg" class="day-tab active py-2 px-1 rounded-lg text-xs sm:text-sm font-medium bg-white shadow text-center transition">Seg<br><span class="text-[10px] opacity-70">A</span></button>
+      <button onclick="selectDay('ter')" id="tab-ter" class="day-tab py-2 px-1 rounded-lg text-xs sm:text-sm font-medium bg-white shadow text-center transition">Ter<br><span class="text-[10px] opacity-70">B</span></button>
+      <button onclick="selectDay('qua')" id="tab-qua" class="day-tab py-2 px-1 rounded-lg text-xs sm:text-sm font-medium bg-white shadow text-center transition">Qua<br><span class="text-[10px] opacity-70">C</span></button>
+      <button onclick="selectDay('qui')" id="tab-qui" class="day-tab py-2 px-1 rounded-lg text-xs sm:text-sm font-medium bg-white shadow text-center transition">Qui<br><span class="text-[10px] opacity-70">D</span></button>
+      <button onclick="selectDay('sex')" id="tab-sex" class="day-tab py-2 px-1 rounded-lg text-xs sm:text-sm font-medium bg-white shadow text-center transition">Sex<br><span class="text-[10px] opacity-70">E</span></button>
+      <button onclick="selectDay('sab')" id="tab-sab" class="day-tab py-2 px-1 rounded-lg text-xs sm:text-sm font-medium bg-white shadow text-center transition">Sáb<br><span class="text-[10px] opacity-70">—</span></button>
+      <button onclick="selectDay('dom')" id="tab-dom" class="day-tab py-2 px-1 rounded-lg text-xs sm:text-sm font-medium bg-white shadow text-center transition">Dom<br><span class="text-[10px] opacity-70">—</span></button>
+    </nav>
+
+    <!-- Conteúdo do dia -->
+    <main id="day-content" class="space-y-6 fade-in">
+      <!-- Preenchido via JS -->
+    </main>
+
+    <!-- Metas -->
+    <section class="bg-white rounded-xl shadow p-5 mt-6">
+      <h2 class="text-lg font-bold mb-4 flex items-center gap-2">📊 Metas</h2>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="bg-slate-50 rounded-lg p-4">
+          <label class="block text-sm text-slate-600 mb-1">Peso atual (kg)</label>
+          <input type="number" id="weight-current" value="96" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onchange="updateGoals()">
+          <p class="text-xs text-slate-500 mt-1">Meta: 90–91 kg</p>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-4">
+          <label class="block text-sm text-slate-600 mb-1">Cintura atual (cm)</label>
+          <input type="number" id="waist-current" value="103" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onchange="updateGoals()">
+          <p class="text-xs text-slate-500 mt-1">Acompanhar redução</p>
+        </div>
+      </div>
+      <div id="goal-message" class="mt-3 text-sm text-blue-700 font-medium"></div>
+    </section>
+
+    <!-- Registro de medidas -->
+    <section class="bg-white rounded-xl shadow p-5 mt-6">
+      <h2 class="text-lg font-bold mb-4 flex items-center gap-2">📏 Registro de medidas</h2>
+      
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Data</label>
+          <input type="date" id="ms-date" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Peso (kg)</label>
+          <input type="number" id="ms-weight" step="0.1" placeholder="0,0" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Cintura (cm)</label>
+          <input type="number" id="ms-waist" step="0.1" placeholder="0,0" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Quadril (cm)</label>
+          <input type="number" id="ms-hip" step="0.1" placeholder="0,0" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Peito (cm)</label>
+          <input type="number" id="ms-chest" step="0.1" placeholder="0,0" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Braço (cm)</label>
+          <input type="number" id="ms-arm" step="0.1" placeholder="0,0" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-600 mb-1">Coxa (cm)</label>
+          <input type="number" id="ms-thigh" step="0.1" placeholder="0,0" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+        </div>
+        <div class="flex items-end">
+          <button onclick="addMeasurement()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition">➕ Adicionar</button>
+        </div>
+      </div>
+      <p id="ms-message" class="text-xs text-amber-600 h-4"></p>
+
+      <!-- Gráfico -->
+      <div class="mt-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-bold text-slate-800 text-sm">📈 Evolução</h3>
+          <select id="chart-metric" onchange="renderChart()" class="text-sm border rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="weight">Peso (kg)</option>
+            <option value="waist">Cintura (cm)</option>
+            <option value="hip">Quadril (cm)</option>
+            <option value="chest">Peito (cm)</option>
+            <option value="arm">Braço (cm)</option>
+            <option value="thigh">Coxa (cm)</option>
+          </select>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-2 border border-slate-200">
+          <canvas id="evolution-chart" class="chart"></canvas>
+          <p id="chart-empty" class="text-center text-sm text-slate-500 py-10 hidden">Nenhuma medição registrada ainda.</p>
+        </div>
+      </div>
+
+      <!-- Histórico de medições -->
+      <div class="mt-4">
+        <h3 class="font-bold text-slate-800 text-sm mb-2">🗒️ Histórico de medições</h3>
+        <div id="measurements-list" class="max-h-48 overflow-y-auto space-y-2 text-sm">
+          <p class="text-slate-500 italic">Nenhuma medição registrada.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Histórico -->
+    <section class="bg-white rounded-xl shadow p-5 mt-6">
+      <h2 class="text-lg font-bold mb-4 flex items-center gap-2">📅 Histórico de sessões</h2>
+      <div id="history-list" class="max-h-40 overflow-y-auto space-y-2 text-sm">
+        <p class="text-slate-500 italic">Nenhum dia concluído ainda.</p>
+      </div>
+      <div class="mt-4 flex gap-3">
+        <button onclick="exportData()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition">💾 Salvar backup</button>
+        <button onclick="document.getElementById('import-file').click()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition">📂 Carregar backup</button>
+        <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(this)">
+      </div>
+    </section>
+
+    <!-- Regras e cuidados -->
+    <section class="bg-amber-50 border border-amber-200 rounded-xl p-5 mt-6">
+      <h2 class="text-lg font-bold mb-3 flex items-center gap-2 text-amber-900">⚠️ Cuidados importantes</h2>
+      <ul class="space-y-2 text-sm text-amber-900">
+        <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Evite prender a respiração durante os exercícios.</li>
+        <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Não faça cargas máximas sem supervisão.</li>
+        <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Desacelere gradualmente no cardio — não pare abruptamente.</li>
+        <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Hidrate-se bem durante os treinos.</li>
+        <li class="flex items-start gap-2"><span class="text-amber-600">•</span> Não use suplementos de potássio ou sal light sem autorização médica.</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <script>
+    const schedule = {
+      seg: { letter: 'A', title: "Superiores A + cardio", emoji: "💪", exercises: [
+        { name: "Supino inclinado", sets: 3, reps: "8–12" },
+        { name: "Remada fechada", sets: 3, reps: "8–12" },
+        { name: "Supino reto", sets: 2, reps: "8–12" },
+        { name: "Pulley aberto", sets: 2, reps: "10–12" },
+        { name: "Desenvolvimento halteres", sets: 2, reps: "10–12" },
+        { name: "Tríceps corda", sets: 2, reps: "10–15" },
+        { name: "Rosca Scott", sets: 2, reps: "10–12" }
+      ], cardio: { type: "Esteira", minutes: 20, note: "Caminhada inclinada moderada" } },
+      ter: { letter: 'B', title: "Inferiores A + cardio", emoji: "🦵", exercises: [
+        { name: "Leg press 45°", sets: 3, reps: "10–12" },
+        { name: "Cadeira extensora", sets: 2, reps: "12–15" },
+        { name: "Stiff com barra", sets: 3, reps: "8–12" },
+        { name: "Mesa flexora", sets: 3, reps: "10–15" },
+        { name: "Cadeira abdutora", sets: 2, reps: "12–15" },
+        { name: "Panturrilha", sets: 3, reps: "12–15" },
+        { name: "Abdominal infra", sets: 2, reps: "12–15" }
+      ], cardio: { type: "Bicicleta", minutes: 20, note: "Ritmo moderado, conversível" } },
+      qua: { letter: 'C', title: "Superiores B + cardio", emoji: "💪", exercises: [
+        { name: "Pulldown", sets: 3, reps: "8–12" },
+        { name: "Supino máquina", sets: 3, reps: "8–12" },
+        { name: "Remada articulada", sets: 3, reps: "8–12" },
+        { name: "Crossover", sets: 2, reps: "12–15" },
+        { name: "Elevação lateral", sets: 3, reps: "12–15" },
+        { name: "Crucifixo inverso", sets: 2, reps: "12–15" },
+        { name: "Rosca martelo", sets: 2, reps: "10–12" },
+        { name: "Tríceps francês", sets: 2, reps: "10–12" }
+      ], cardio: { type: "Elíptico", minutes: 20, note: "Ritmo constante e moderado" } },
+      qui: { letter: 'D', title: "Inferiores B + cardio", emoji: "🦵", exercises: [
+        { name: "Agachamento no smith ou leg press", sets: 3, reps: "8–12" },
+        { name: "Cadeira flexora", sets: 3, reps: "10–15" },
+        { name: "Elevação pélvica", sets: 3, reps: "10–12" },
+        { name: "Cadeira extensora", sets: 2, reps: "12–15" },
+        { name: "Cadeira adutora", sets: 2, reps: "12–15" },
+        { name: "Panturrilha", sets: 3, reps: "12–15" },
+        { name: "Abdominal reto", sets: 2, reps: "12–15" }
+      ], cardio: { type: "Esteira", minutes: 20, note: "Caminhada inclinada moderada" } },
+      sex: { letter: 'E', title: "Treino E — complementar + cardio", emoji: "🎯", exercises: [
+        { name: "Elevação lateral", sets: 3, reps: "12–15" },
+        { name: "Crucifixo inverso", sets: 3, reps: "12–15" },
+        { name: "Rosca martelo", sets: 2, reps: "10–12" },
+        { name: "Tríceps corda", sets: 2, reps: "10–15" },
+        { name: "Panturrilha", sets: 3, reps: "12–15" },
+        { name: "Abdominal na polia", sets: 3, reps: "12–15" },
+        { name: "Prancha abdominal", sets: 2, reps: "30–45 s" }
+      ], cardio: { type: "Caminhada", minutes: 25, note: "Atividade leve após o complementar" } },
+      sab: { letter: '—', title: "Descanso", emoji: "😴", exercises: [], cardio: null },
+      dom: { letter: '—', title: "Descanso", emoji: "😴", exercises: [], cardio: null }
+    };
+
+    const PROGRAM_DAYS = 60;
+
+    let state = {
+      completed: {},
+      weights: {},
+      dayProgress: {}, // por dia da semana: último progresso
+      history: [],
+      currentDay: 'seg',
+      measurements: []
+    };
+
+    function init() {
+      const today = new Date().getDay();
+      const map = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+      state.currentDay = map[today];
+      document.getElementById('ms-date').valueAsDate = new Date();
+      selectDay(state.currentDay);
+      updateGoals();
+      updateProgramProgress();
+      renderHistory();
+      renderMeasurements();
+      renderChart();
+    }
+
+    function selectDay(day) {
+      state.currentDay = day;
+      document.querySelectorAll('.day-tab').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`tab-${day}`).classList.add('active');
+      renderDay(day);
+      updateProgramProgress();
+    }
+
+    function formatReps(reps) {
+      return reps.includes('s') ? reps : reps + ' reps';
+    }
+
+    function renderDay(day) {
+      const data = schedule[day];
+      const content = document.getElementById('day-content');
+      
+      let html = `
+        <div class="bg-white rounded-xl shadow p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded mb-1">Treino ${data.letter}</span>
+              <h2 class="text-xl font-bold text-slate-800">${data.emoji} ${data.title}</h2>
+              <p class="text-sm text-slate-500">${data.exercises.length} exercício(s)</p>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-blue-600" id="day-progress">0%</div>
+              <div class="text-xs text-slate-500">concluído</div>
+            </div>
+          </div>
+      `;
+
+      if (data.exercises.length > 0) {
+        html += `<div class="space-y-3">`;
+        data.exercises.forEach((ex, index) => {
+          const id = `${day}-${index}`;
+          const checked = state.completed[id] ? 'checked' : '';
+          const doneClass = state.completed[id] ? 'exercise-done' : '';
+          const weight = state.weights[id] || '';
+          html += `
+            <div class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition ${doneClass}" id="row-${id}">
+              <label class="flex items-center gap-3 cursor-pointer flex-1">
+                <input type="checkbox" class="checkbox-custom hidden" ${checked} onchange="toggleExercise('${id}')">
+                <div class="w-6 h-6 rounded border-2 border-slate-300 flex items-center justify-center transition shrink-0">
+                  <svg class="w-4 h-4 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-slate-800">${ex.name}</div>
+                  <div class="text-sm text-slate-500">${ex.sets} séries × ${formatReps(ex.reps)}</div>
+                </div>
+              </label>
+              <div class="shrink-0">
+                <label class="block text-[10px] text-slate-500 text-center mb-0.5">Carga (kg)</label>
+                <input type="number" value="${weight}" placeholder="0" class="w-16 p-1.5 text-center border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" onchange="updateWeight('${id}', this.value)">
+              </div>
+            </div>
+          `;
+        });
+        html += `</div>`;
+        
+        html += `
+          <button id="finish-day-btn" onclick="finishDay()" class="mt-5 w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition">
+            ✅ Concluir dia de treino
+          </button>
+          <p id="finish-warning" class="mt-2 text-xs text-center text-amber-600 hidden">Marque todos os exercícios para concluir o dia.</p>
+        `;
+      } else {
+        html += `
+          <div class="bg-slate-50 rounded-lg p-6 text-center text-slate-600">
+            <p class="text-lg mb-1">Dia de descanso.</p>
+            <p class="text-sm">Aproveite para recuperação muscular.</p>
+          </div>
+        `;
+      }
+
+      html += `</div>`;
+
+      if (data.cardio) {
+        html += `
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+            <h3 class="font-bold text-emerald-900 mb-2 flex items-center gap-2">❤️ Cardio do dia</h3>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-lg font-semibold text-emerald-800">${data.cardio.type}</p>
+                <p class="text-sm text-emerald-700">${data.cardio.minutes} minutos</p>
+              </div>
+              <div class="text-3xl">🏃</div>
+            </div>
+            <p class="text-sm text-emerald-700 mt-2">${data.cardio.note}</p>
+          </div>
+        `;
+      }
+
+      if (data.exercises.length > 0) {
+        html += `
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+            <h3 class="font-bold text-blue-900 mb-2">💡 Lembretes para hoje</h3>
+            <ul class="space-y-1 text-sm text-blue-800">
+              <li>• Aqueça 5–8 minutos antes de começar.</li>
+              <li>• Mantenha 1–3 repetições em reserva (não vá à falha em tudo).</li>
+              <li>• Descanse 2–3 min nos compostos e 1–2 min nos isolados.</li>
+              <li>• Aumente a carga só quando atingir o topo das repetições com boa técnica.</li>
+            </ul>
+          </div>
+        `;
+      }
+
+      content.innerHTML = html;
+      content.classList.remove('fade-in');
+      void content.offsetWidth;
+      content.classList.add('fade-in');
+      updateDayProgress(day);
+    }
+
+    function toggleExercise(id) {
+      state.completed[id] = !state.completed[id];
+      const row = document.getElementById(`row-${id}`);
+      if (state.completed[id]) {
+        row.classList.add('exercise-done');
+      } else {
+        row.classList.remove('exercise-done');
+      }
+      updateDayProgress(state.currentDay);
+    }
+
+    function updateWeight(id, value) {
+      state.weights[id] = value;
+    }
+
+    function updateDayProgress(day) {
+      const data = schedule[day];
+      if (data.exercises.length === 0) {
+        return;
+      }
+      let done = 0;
+      data.exercises.forEach((_, index) => {
+        if (state.completed[`${day}-${index}`]) done++;
+      });
+      const pct = Math.round((done / data.exercises.length) * 100);
+      const el = document.getElementById('day-progress');
+      if (el) el.textContent = `${pct}%`;
+      
+      const btn = document.getElementById('finish-day-btn');
+      const warning = document.getElementById('finish-warning');
+      if (btn) {
+        if (pct === 100) {
+          btn.disabled = false;
+          warning.classList.add('hidden');
+        } else {
+          btn.disabled = true;
+          warning.classList.remove('hidden');
+        }
+      }
+    }
+
+    function finishDay() {
+      const day = state.currentDay;
+      const data = schedule[day];
+      if (data.exercises.length === 0) return;
+      
+      const todayStr = new Date().toLocaleDateString('pt-BR');
+      const dayCount = state.history.length + 1;
+      
+      state.history.push({
+        dayLabel: dayCount,
+        date: todayStr,
+        workout: `${data.letter} — ${data.title.replace(' + cardio', '')}`
+      });
+      
+      // Limpa checkboxes e cargas deste dia
+      data.exercises.forEach((_, index) => {
+        const id = `${day}-${index}`;
+        delete state.completed[id];
+        delete state.weights[id];
+      });
+      
+      updateProgramProgress();
+      renderHistory();
+      renderDay(day);
+      
+      // Mostra parabéns se atingiu meta
+      if (dayCount === PROGRAM_DAYS) {
+        setTimeout(() => alert('🎉 Parabéns! Você completou os 60 dias de treino!'), 100);
+      }
+    }
+
+    function updateProgramProgress() {
+      const count = state.history.length;
+      const pct = Math.min(100, Math.round((count / PROGRAM_DAYS) * 100));
+      document.getElementById('program-progress-text').textContent = `Dia ${count} de ${PROGRAM_DAYS}`;
+      document.getElementById('program-progress-bar').style.width = `${pct}%`;
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      if (state.history.length === 0) {
+        list.innerHTML = '<p class="text-slate-500 italic">Nenhum dia concluído ainda.</p>';
+        return;
+      }
+      const reversed = [...state.history].reverse();
+      list.innerHTML = reversed.map(h => `
+        <div class="flex justify-between items-center p-2 bg-slate-50 rounded">
+          <span class="font-medium text-slate-700">Dia ${h.dayLabel} · ${h.workout}</span>
+          <span class="text-xs text-slate-500">${h.date}</span>
+        </div>
+      `).join('');
+    }
+
+    function updateGoals() {
+      const weightInput = parseFloat(document.getElementById('weight-current').value);
+      const waistInput = parseFloat(document.getElementById('waist-current').value);
+      const msg = document.getElementById('goal-message');
+      
+      // Usa última medição se disponível, senão usa os inputs manuais
+      const last = state.measurements.length > 0 ? state.measurements[state.measurements.length - 1] : null;
+      const weight = last?.weight || weightInput;
+      const waist = last?.waist || waistInput;
+      
+      let text = '';
+      if (weight && weight <= 91) {
+        text += `✅ Peso na meta! (${weight.toFixed(1)} kg). `;
+      } else if (weight) {
+        text += `📉 Peso: ${weight.toFixed(1)} kg — meta 90–91 kg. Faltam ${(weight - 91).toFixed(1)} kg. `;
+      }
+      if (waist && waist < 103) {
+        text += `Cintura reduzindo (${waist.toFixed(1)} cm).`;
+      } else if (waist) {
+        text += `Cintura: ${waist.toFixed(1)} cm.`;
+      }
+      msg.textContent = text;
+    }
+
+    function addMeasurement() {
+      const date = document.getElementById('ms-date').value;
+      const weight = parseFloat(document.getElementById('ms-weight').value) || null;
+      const waist = parseFloat(document.getElementById('ms-waist').value) || null;
+      const hip = parseFloat(document.getElementById('ms-hip').value) || null;
+      const chest = parseFloat(document.getElementById('ms-chest').value) || null;
+      const arm = parseFloat(document.getElementById('ms-arm').value) || null;
+      const thigh = parseFloat(document.getElementById('ms-thigh').value) || null;
+      const msg = document.getElementById('ms-message');
+
+      if (!date) {
+        msg.textContent = 'Informe a data da medição.';
+        return;
+      }
+      if (!weight && !waist && !hip && !chest && !arm && !thigh) {
+        msg.textContent = 'Preencha pelo menos uma medida.';
+        return;
+      }
+
+      state.measurements.push({ date, weight, waist, hip, chest, arm, thigh });
+      state.measurements.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      // Atualiza inputs de meta com os últimos valores
+      const last = state.measurements[state.measurements.length - 1];
+      if (last.weight) document.getElementById('weight-current').value = last.weight;
+      if (last.waist) document.getElementById('waist-current').value = last.waist;
+
+      // Limpa campos
+      document.getElementById('ms-weight').value = '';
+      document.getElementById('ms-waist').value = '';
+      document.getElementById('ms-hip').value = '';
+      document.getElementById('ms-chest').value = '';
+      document.getElementById('ms-arm').value = '';
+      document.getElementById('ms-thigh').value = '';
+      msg.textContent = '';
+
+      renderMeasurements();
+      renderChart();
+      updateGoals();
+    }
+
+    function deleteMeasurement(index) {
+      state.measurements.splice(index, 1);
+      renderMeasurements();
+      renderChart();
+      updateGoals();
+    }
+
+    function renderMeasurements() {
+      const list = document.getElementById('measurements-list');
+      if (state.measurements.length === 0) {
+        list.innerHTML = '<p class="text-slate-500 italic">Nenhuma medição registrada.</p>';
+        return;
+      }
+      const reversed = [...state.measurements].reverse();
+      list.innerHTML = reversed.map((m, i) => {
+        const realIndex = state.measurements.length - 1 - i;
+        const items = [];
+        if (m.weight) items.push(`Peso: ${m.weight.toFixed(1)} kg`);
+        if (m.waist) items.push(`Cintura: ${m.waist.toFixed(1)} cm`);
+        if (m.hip) items.push(`Quadril: ${m.hip.toFixed(1)} cm`);
+        if (m.chest) items.push(`Peito: ${m.chest.toFixed(1)} cm`);
+        if (m.arm) items.push(`Braço: ${m.arm.toFixed(1)} cm`);
+        if (m.thigh) items.push(`Coxa: ${m.thigh.toFixed(1)} cm`);
+        return `
+          <div class="flex justify-between items-start p-2 bg-slate-50 rounded">
+            <div>
+              <div class="font-medium text-slate-700">${new Date(m.date + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
+              <div class="text-xs text-slate-500">${items.join(' · ')}</div>
+            </div>
+            <button onclick="deleteMeasurement(${realIndex})" class="text-red-500 hover:text-red-700 text-xs font-medium">Excluir</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderChart() {
+      const canvas = document.getElementById('evolution-chart');
+      const empty = document.getElementById('chart-empty');
+      const metric = document.getElementById('chart-metric').value;
+      const labels = {
+        weight: 'Peso (kg)', waist: 'Cintura (cm)', hip: 'Quadril (cm)',
+        chest: 'Peito (cm)', arm: 'Braço (cm)', thigh: 'Coxa (cm)'
+      };
+
+      const data = state.measurements.filter(m => m[metric] !== null);
+      if (data.length === 0) {
+        canvas.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+      canvas.classList.remove('hidden');
+      empty.classList.add('hidden');
+
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const width = rect.width;
+      const height = rect.height;
+      const padding = { top: 20, right: 20, bottom: 40, left: 45 };
+      const chartW = width - padding.left - padding.right;
+      const chartH = height - padding.top - padding.bottom;
+
+      const values = data.map(m => m[metric]);
+      const minVal = Math.min(...values);
+      const maxVal = Math.max(...values);
+      const range = maxVal - minVal || 1;
+      const yMin = Math.max(0, minVal - range * 0.1);
+      const yMax = maxVal + range * 0.1;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Eixos
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, padding.top);
+      ctx.lineTo(padding.left, height - padding.bottom);
+      ctx.lineTo(width - padding.right, height - padding.bottom);
+      ctx.stroke();
+
+      // Grid e labels Y
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px Inter, sans-serif';
+      ctx.textAlign = 'right';
+      const steps = 5;
+      for (let i = 0; i <= steps; i++) {
+        const y = padding.top + (chartH * i) / steps;
+        const val = yMax - ((yMax - yMin) * i) / steps;
+        ctx.fillText(val.toFixed(1), padding.left - 8, y + 4);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+      }
+
+      // Linha do gráfico
+      const getX = (i) => padding.left + (chartW * i) / (data.length - 1 || 1);
+      const getY = (v) => padding.top + chartH * ((yMax - v) / (yMax - yMin));
+
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      data.forEach((m, i) => {
+        const x = getX(i);
+        const y = getY(m[metric]);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Pontos
+      ctx.fillStyle = '#2563eb';
+      data.forEach((m, i) => {
+        const x = getX(i);
+        const y = getY(m[metric]);
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Labels X (datas)
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'center';
+      const maxLabels = 6;
+      const stepLabel = Math.ceil(data.length / maxLabels);
+      data.forEach((m, i) => {
+        if (i % stepLabel === 0 || i === data.length - 1) {
+          const x = getX(i);
+          const date = new Date(m.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+          ctx.fillText(date, x, height - padding.bottom + 18);
+        }
+      });
+
+      // Título
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(labels[metric], padding.left, 14);
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `treino-60-dias-backup.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.completed && data.weights && data.history) {
+            state = { ...state, ...data, measurements: data.measurements || [] };
+            renderDay(state.currentDay);
+            updateProgramProgress();
+            renderHistory();
+            renderMeasurements();
+            renderChart();
+            updateGoals();
+            alert('Backup carregado com sucesso!');
+          } else {
+            alert('Arquivo inválido.');
+          }
+        } catch (err) {
+          alert('Erro ao ler o arquivo.');
+        }
+      };
+      reader.readAsText(file);
+      input.value = '';
+    }
+
+    window.addEventListener('resize', renderChart);
+
+    init();
+  </script>
+</body>
+</html>
